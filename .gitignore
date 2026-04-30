@@ -21,6 +21,9 @@ lerna-debug.log*
 .env.*
 !.env.example
 *.local
+backend/.env
+backend/.env.*
+!backend/.env.example
 
 # Python
 __pycache__/
@@ -42,10 +45,15 @@ htmlcov/
 backend/.cache/
 backend/uploads/
 backend/tmp/
-*.pt
-*.pth
-*.ckpt
-*.onnx
+backend/data/*.csv
+backend/data/*.json
+backend/models/*.pkl
+backend/models/*.json
+backend/models/*.pt
+backend/models/*.pth
+backend/models/*.ckpt
+backend/models/*.onnx
+backend/indexes/
 
 # OS and editor files
 .DS_Store

@@ -51,6 +51,9 @@ export default function Dashboard() {
   const [showMetro, setShowMetro] = useState(true);
   const [showFlood, setShowFlood] = useState(false);
   const [showImpactFactors, setShowImpactFactors] = useState(true);
+  
+  // Dashboard Tabs State
+  const [activeTab, setActiveTab] = useState('summary');
 
   // True CUDA Vision Backend State
   const [detectedBoxes, setDetectedBoxes] = useState({});
@@ -356,11 +359,41 @@ export default function Dashboard() {
              currentData && (
               <div className={`max-w-7xl mx-auto space-y-6 ${isLoading ? 'opacity-0 scale-95 transition-all' : 'opacity-100 scale-100 transition-all duration-500'}`}>
                 
-                <Stage1IntakeSection stage1={currentData.stage1} />
-                <Stage2VerificationSection stage2Output={currentData.stage2Output} />
-                
-                {/* Decision Banner Row */}
-                <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between mt-2">
+                {/* Clean Tab Navigation */}
+                <div className="flex gap-4 border-b border-slate-200 mb-6 bg-white p-2 rounded-xl shadow-sm">
+                  {[
+                    { id: 'summary', label: 'Executive Summary', icon: 'monitoring' },
+                    { id: 'verification', label: 'Intake & Verification', icon: 'verified_user' },
+                    { id: 'analysis', label: 'AI Diagnostics', icon: 'troubleshoot' },
+                    { id: 'location', label: 'Geospatial Data', icon: 'public' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors flex items-center gap-2 ${
+                        activeTab === tab.id 
+                          ? 'text-indigo-700 bg-indigo-50 border border-indigo-100 shadow-sm' 
+                          : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {activeTab === 'verification' && (
+                  <>
+                    <Stage1IntakeSection stage1={currentData.stage1} />
+                    <Stage2VerificationSection stage2Output={currentData.stage2Output} />
+                    <HistoricalReliabilitySection historicalCaseSummary={currentData.historicalCaseSummary} />
+                  </>
+                )}
+
+                {activeTab === 'summary' && (
+                  <>
+                    {/* Decision Banner Row */}
+                    <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between mt-2">
                    <div className="flex items-start md:items-center gap-4">
                       <div className={`w-14 h-14 rounded-full flex items-center justify-center shrink-0 ${
                          currentData.verificationDecision.decision.includes('REJECT') ? 'bg-red-100 text-red-600' : 
@@ -556,8 +589,11 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
+                </>
+                )}
 
                 {/* Middle Row: Drivers, Visual Audit */}
+                {activeTab === 'analysis' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
                   {/* Value Drivers */}
                   <div className="space-y-6 lg:col-span-1 h-full">
@@ -678,10 +714,10 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-
-                <HistoricalReliabilitySection historicalCaseSummary={currentData.historicalCaseSummary} />
+                )}
 
                 {/* Bottom Row: Map */}
+                {activeTab === 'location' && (
                 <div className="bg-white rounded-xl p-6 w-full border border-slate-200 shadow-sm mb-8 relative z-0">
                    <div className="flex justify-between items-center mb-2">
                       <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -719,6 +755,7 @@ export default function Dashboard() {
                      hyperlocalPOIs={currentData.hyperlocalContext?.pois || []}
                    />
                 </div>
+                )}
 
               </div>
              )

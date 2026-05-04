@@ -43,6 +43,44 @@ The system keeps all numeric scoring deterministic. The local LLM explains alrea
 
 ## Product Screenshots
 
+Final dashboard capture set for the hackathon submission:
+
+### Intake & Evidence Capture
+
+![PropScore intake form with rental and evidence fields](docs/screenshots/input-rental-details.png)
+
+### Dashboard Overview
+
+![PropScore dashboard overview with underwriter decision memo and key collateral metrics](docs/screenshots/dashboard-overview.png)
+
+### Visual Evidence State
+
+![PropScore no-image evidence state with deterministic fallback handling](docs/screenshots/visual-evidence-no-images.png)
+
+### Stage 1: Intake & Buckets
+
+![PropScore Stage 1 intake normalization and bucket assignment](docs/screenshots/stage1-intake-buckets.png)
+
+### Stage 2: Verification
+
+![PropScore Stage 2 verification table with deterministic checks and priority flags](docs/screenshots/stage2-verification.png)
+
+### Valuation & Liquidity
+
+![PropScore valuation and liquidity dashboard with market value, distress value, LTV, confidence, and driver breakdown](docs/screenshots/valuation-liquidity.png)
+
+### Historical Similar Cases
+
+![PropScore historical similar cases view with confidence adjustment and recency-weighted cases](docs/screenshots/historical-similar-cases.png)
+
+### Portfolio-Aware Risk
+
+![PropScore portfolio concentration risk view with exposure lenses and LTV recommendation](docs/screenshots/portfolio-risk.png)
+
+### AI Underwriter Summary
+
+![PropScore AI underwriter summary using fast local Ollama model](docs/screenshots/ai-fast-model-summary.png)
+
 ### Hyperlocal Map Intelligence
 
 ![PropScore hyperlocal map intelligence dashboard](docs/screenshots/hyperlocal-map-intelligence.png)
@@ -122,7 +160,7 @@ $env:OLLAMA_MODEL="qwen2.5:7b"
 $env:OLLAMA_FALLBACK_MODEL="llama3.2:3b"
 $env:OLLAMA_FAST_MODEL="llama3.2:3b"
 $env:OLLAMA_TIMEOUT_SECONDS="150"
-$env:OLLAMA_FAST_TIMEOUT_SECONDS="120"
+$env:OLLAMA_FAST_TIMEOUT_SECONDS="300"
 $env:LLM_DEBUG="false"
 python -m uvicorn backend.main:app --reload --port 8000
 ```
@@ -168,7 +206,7 @@ OLLAMA_MODEL=qwen2.5:7b
 OLLAMA_FALLBACK_MODEL=llama3.2:3b
 OLLAMA_FAST_MODEL=llama3.2:3b
 OLLAMA_TIMEOUT_SECONDS=150
-OLLAMA_FAST_TIMEOUT_SECONDS=120
+OLLAMA_FAST_TIMEOUT_SECONDS=300
 LLM_DEBUG=false
 VITE_API_BASE_URL=http://127.0.0.1:8000
 ```

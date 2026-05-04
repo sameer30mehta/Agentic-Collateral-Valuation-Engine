@@ -39,7 +39,7 @@ $env:OLLAMA_MODEL="qwen2.5:7b"
 $env:OLLAMA_FALLBACK_MODEL="llama3.2:3b"
 $env:OLLAMA_FAST_MODEL="llama3.2:3b"
 $env:OLLAMA_TIMEOUT_SECONDS="150"
-$env:OLLAMA_FAST_TIMEOUT_SECONDS="120"
+$env:OLLAMA_FAST_TIMEOUT_SECONDS="300"
 $env:LLM_DEBUG="false"
 python -m uvicorn backend.main:app --reload --port 8000
 ```
@@ -124,7 +124,7 @@ python backend/db/seed_sqlite.py
 ### Ollama timeout
 
 - Keep `OLLAMA_TIMEOUT_SECONDS=150`.
-- Keep `OLLAMA_FAST_TIMEOUT_SECONDS=120`.
+- Keep `OLLAMA_FAST_TIMEOUT_SECONDS=300`.
 - `qwen2.5:7b` can be slow on low-RAM machines.
 - The backend supports `llama3.2:3b` fast/fallback mode and a rule-based fallback.
 

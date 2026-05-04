@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     OLLAMA_FALLBACK_MODEL: str = os.getenv("OLLAMA_FALLBACK_MODEL", "llama3.2:3b")
     OLLAMA_FAST_MODEL: str = os.getenv("OLLAMA_FAST_MODEL", "llama3.2:3b")
     OLLAMA_TIMEOUT_SECONDS: int = env_int("OLLAMA_TIMEOUT_SECONDS", 150)
-    OLLAMA_FAST_TIMEOUT_SECONDS: int = env_int("OLLAMA_FAST_TIMEOUT_SECONDS", 120)
+    OLLAMA_FAST_TIMEOUT_SECONDS: int = env_int("OLLAMA_FAST_TIMEOUT_SECONDS", 300)
     LLM_DEBUG: bool = env_bool("LLM_DEBUG", False)
     OLLAMA_VLM_MODEL: str = os.getenv("OLLAMA_VLM_MODEL", "llava:7b")
     OLLAMA_TEXT_MODEL: str = os.getenv("OLLAMA_TEXT_MODEL", "llama2:7b")

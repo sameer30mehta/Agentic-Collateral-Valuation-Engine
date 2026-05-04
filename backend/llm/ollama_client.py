@@ -43,6 +43,7 @@ def generate_underwriter_summary(
     debug_enabled: bool = False,
 ) -> Dict[str, Any]:
     prompt = build_underwriter_prompt(payload)
+    fast_prompt = build_fast_underwriter_prompt(payload)
     attempts: list[Dict[str, Any]] = []
     selected_mode = normalize_summary_mode(mode)
     selected_fast_model = fast_model or fallback_model
@@ -62,9 +63,11 @@ def generate_underwriter_summary(
         fast_summary, fast_error = _try_model(
             base_url=base_url,
             model=selected_fast_model,
-            prompt=prompt,
+            prompt=fast_prompt,
             timeout_seconds=fast_timeout_seconds,
             payload=payload,
+            prefer_plain_json=True,
+            retry_after_timeout=False,
         )
         attempts.append(_attempt_debug(selected_fast_model, fast_summary, fast_error))
         _log_attempt(debug_enabled, selected_mode, selected_fast_model, fast_timeout_seconds, fast_summary, fast_error)
@@ -253,30 +256,34 @@ def _try_model(
     prompt: str,
     timeout_seconds: float,
     payload: Dict[str, Any],
+    prefer_plain_json: bool = False,
+    retry_after_timeout: bool = True,
 ) -> tuple[Optional[Dict[str, Any]], Optional[str]]:
     if not model:
         return None, "Model name is empty"
 
-    used_no_format_retry = False
+    first_uses_json_format = not prefer_plain_json
+    first_prompt = prompt if first_uses_json_format else build_no_format_retry_prompt(prompt)
     try:
         response_text = call_ollama(
             base_url=base_url,
             model=model,
-            prompt=prompt,
+            prompt=first_prompt,
             timeout_seconds=timeout_seconds,
-            request_json_format=True,
+            request_json_format=first_uses_json_format,
         )
     except OllamaSummaryError as exc:
-        if "format" not in str(exc).lower():
+        if _is_timeout_error(exc) or not retry_after_timeout:
+            return None, str(exc)
+        if "format" not in str(exc).lower() and first_uses_json_format:
             return None, str(exc)
         try:
-            used_no_format_retry = True
             response_text = call_ollama(
                 base_url=base_url,
                 model=model,
                 prompt=build_no_format_retry_prompt(prompt),
                 timeout_seconds=timeout_seconds,
-                request_json_format=False,
+                request_json_format=not first_uses_json_format,
             )
         except OllamaSummaryError as retry_exc:
             return None, f"{exc}; no-format retry failed: {retry_exc}"
@@ -284,7 +291,7 @@ def _try_model(
     try:
         return parse_model_json(response_text, payload), None
     except OllamaSummaryError as first_parse_exc:
-        if used_no_format_retry:
+        if not retry_after_timeout:
             return None, str(first_parse_exc)
         try:
             retry_text = call_ollama(
@@ -292,11 +299,16 @@ def _try_model(
                 model=model,
                 prompt=build_no_format_retry_prompt(prompt),
                 timeout_seconds=timeout_seconds,
-                request_json_format=False,
+                request_json_format=not first_uses_json_format,
             )
             return parse_model_json(retry_text, payload), None
         except OllamaSummaryError as retry_exc:
             return None, f"{first_parse_exc}; no-format retry failed: {retry_exc}"
+
+
+def _is_timeout_error(error: Exception) -> bool:
+    message = str(error).lower()
+    return "timed out" in message or "timeout" in message
 
 
 def _attempt_debug(
@@ -450,6 +462,11 @@ def call_ollama(
         "model": model,
         "prompt": prompt,
         "stream": False,
+        "options": {
+            "temperature": 0.1,
+            "top_p": 0.9,
+            "num_predict": 850,
+        },
     }
     if request_json_format:
         body["format"] = "json"
@@ -531,6 +548,82 @@ Return exactly this JSON shape:
 Structured collateral case:
 {structured_case}
 """
+
+
+def build_fast_underwriter_prompt(payload: Dict[str, Any]) -> str:
+    structured_case = json.dumps(_compact_fast_payload(payload), ensure_ascii=False, separators=(",", ":"), default=str)
+    return f"""You are an underwriting assistant for collateral-backed lending.
+Explain only the deterministic structured outputs provided below.
+Do not calculate, change, or invent numeric values. Do not recommend additional collateral unless the input explicitly says collateral is insufficient.
+
+Return one valid JSON object only with exactly these keys:
+executiveSummary, keyStrengths, keyRisks, recommendedEvidence, reviewRoute, suggestedLenderAction, confidenceNarrative, portfolioNarrative, numericDecisionBoundary.
+
+Rules:
+- Write for a lender/underwriter.
+- Mention high/medium liquidity and positive historical signal as strengths when present.
+- Mention Stage 2 flags and portfolio concentration flags as separate risks when present.
+- Evidence must be tied to flags: size anomaly -> verify carpet/built-up area; legal/title uncertainty -> upload title/legal evidence; missing images -> upload interior/exterior images; portfolio concentration -> document senior credit review.
+- numericDecisionBoundary must say numeric scores, value estimates, LTV adjustments, and risk flags are deterministic; AI only explains outputs and recommends evidence.
+
+Structured case JSON:
+{structured_case}
+"""
+
+
+def _compact_fast_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    stage1 = payload.get("stage1") or {}
+    stage2 = payload.get("stage2Output") or {}
+    valuation = payload.get("valuation") or {}
+    historical = payload.get("historicalCaseSummary") or {}
+    portfolio = payload.get("portfolioRiskSummary") or {}
+    profile = _stage1_profile(stage1)
+    bucket = _stage1_micro_market_bucket(stage1)
+    portfolio_summary = _portfolio_summary(portfolio)
+
+    return {
+        "caseId": payload.get("caseId"),
+        "property": {
+            "address": profile.get("address"),
+            "propertyType": profile.get("propertyType"),
+            "subtype": profile.get("subtype"),
+            "sizeSqft": profile.get("sizeSqft"),
+            "ageBucket": profile.get("ageBucket"),
+            "legalStatus": profile.get("legalStatus") or profile.get("titleClarity"),
+            "imageCount": profile.get("imageCount"),
+        },
+        "market": {
+            "microMarket": bucket.get("label") or bucket.get("id"),
+            "commonSizeBand": bucket.get("commonSizeBand"),
+            "liquidityNorm": bucket.get("liquidityNorm"),
+            "localPriceBand": bucket.get("localPriceBand"),
+        },
+        "stage2": {
+            "decision": stage2.get("decision"),
+            "scores": stage2.get("scores") or {},
+            "flags": (stage2.get("flags") or [])[:4],
+        },
+        "valuation": {
+            "marketValue": valuation.get("marketValue"),
+            "distressValue": valuation.get("distressValue"),
+            "timeToLiquidateDays": valuation.get("timeToLiquidateDays"),
+            "confidenceScore": valuation.get("confidenceScore"),
+        },
+        "historical": {
+            "source": historical.get("source"),
+            "overallSignal": historical.get("overallSignal"),
+            "confidenceAdjustment": historical.get("confidenceAdjustment"),
+            "displayedCount": historical.get("displayedCount"),
+        },
+        "portfolio": {
+            "source": portfolio.get("source"),
+            "riskLevel": portfolio_summary.get("riskLevel"),
+            "portfolioRiskScore": portfolio_summary.get("portfolioRiskScore"),
+            "recommendedLtv": portfolio_summary.get("recommendedLtv"),
+            "reviewRecommendation": portfolio_summary.get("reviewRecommendation"),
+            "riskFlags": (portfolio.get("riskFlags") or [])[:4],
+        },
+    }
 
 
 def build_no_format_retry_prompt(prompt: str) -> str:

@@ -438,22 +438,20 @@ export default function Dashboard() {
         setIsUnderwriterSummaryLoading(false);
 
         if (fastResponse.source === 'rule_based_fallback') {
-          showToast('AI summary is available in fallback form. Enhanced model will be attempted next.', 'info');
+          showToast('Fast local LLM was unavailable after the timeout; rule-based fallback is shown.', 'info');
         } else if (fastResponse.summary) {
           showToast('Fast AI underwriter summary is ready in the AI Brief tab.', 'info');
         }
 
-        if (!fastResponse.upgradeAvailable) {
-          clearEnhancementTimer();
-          underwriterSummaryRequestRef.current = {
-            ...underwriterSummaryRequestRef.current,
-            fastPromise: null,
-            enhancedPromise: null
-          };
-          return;
-        }
-
-        startEnhancedSummary();
+        clearEnhancementTimer();
+        underwriterSummaryRequestRef.current = {
+          ...underwriterSummaryRequestRef.current,
+          fastPromise: null,
+          enhancedPromise: null,
+          enhancedRequestStarted: false,
+          enhancementTimerId: null
+        };
+        setUnderwriterSummaryEnhancement({ status: 'idle', message: '' });
       })
       .catch((error) => {
         if (underwriterSummarySequenceRef.current !== requestSequence) return;

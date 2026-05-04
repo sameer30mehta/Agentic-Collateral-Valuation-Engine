@@ -80,7 +80,7 @@ function LoadingState() {
         <div className="w-9 h-9 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin shrink-0"></div>
         <div>
           <p className="text-sm font-bold text-indigo-900">Generating fast AI summary</p>
-          <p className="text-[12px] font-medium text-indigo-700 mt-1">Calling local Ollama with llama3.2:3b first and giving it up to 200 seconds before fallback handling.</p>
+          <p className="text-[12px] font-medium text-indigo-700 mt-1">Calling local Ollama with llama3.2:3b first and giving it up to 300 seconds before rule-based fallback handling.</p>
         </div>
       </div>
     </section>

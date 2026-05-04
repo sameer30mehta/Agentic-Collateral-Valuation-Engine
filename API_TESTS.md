@@ -11,7 +11,7 @@ $env:OLLAMA_MODEL="qwen2.5:7b"
 $env:OLLAMA_FALLBACK_MODEL="llama3.2:3b"
 $env:OLLAMA_FAST_MODEL="llama3.2:3b"
 $env:OLLAMA_TIMEOUT_SECONDS="150"
-$env:OLLAMA_FAST_TIMEOUT_SECONDS="120"
+$env:OLLAMA_FAST_TIMEOUT_SECONDS="300"
 $env:LLM_DEBUG="true"
 python -m uvicorn backend.main:app --reload --port 8000
 ```
